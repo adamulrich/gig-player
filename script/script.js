@@ -536,6 +536,11 @@ document.getElementById("rename-playlist-button").addEventListener("click", rena
 document.getElementById("delete-playlist-button").addEventListener("click", deletePlaylist);
 continuousPlay.checked = localStorage.getItem("gig-player-continuous-play") === "true";
 continuousPlay.addEventListener("change", () => localStorage.setItem("gig-player-continuous-play", String(continuousPlay.checked)));
+window.addEventListener("beforeunload", (event) => {
+  if (!selectedTrackId) return;
+  event.preventDefault();
+  event.returnValue = "";
+});
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") requestWakeLock(); });
 document.addEventListener("pointerdown", requestWakeLock, { once: true });
 
