@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#121b1a">
+  <meta name="description" content="A simple, stage-ready player for local backing tracks.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Gig Player">
+  <title>Gig Player</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="images/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="images/icon.svg">
+  <link rel="stylesheet" href="style/base.css">
+  <script defer src="script/script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+    }
+  </script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Gig Player home"><span class="brand-mark" aria-hidden="true">♪</span><span>GIG PLAYER</span></a>
+      <span class="local-badge"><span class="status-dot"></span> <span id="wake-status">SCREEN AWAKE</span></span>
+    </header>
+
+    <section class="player-panel" aria-label="Audio player">
+      <div class="eyebrow">NOW PLAYING</div>
+      <div class="now-playing" id="now-playing">Choose a track to get started</div>
+      <div class="playback-status" id="playback-status" aria-live="polite">Your music stays on this device</div>
+
+      <div class="seek-row">
+        <span id="elapsed-time">0:00</span>
+        <input id="seek-bar" type="range" min="0" max="1000" value="0" aria-label="Seek through current song" disabled>
+        <span id="duration-time">0:00</span>
+      </div>
+      <div class="transport" aria-label="Playback controls">
+        <button class="transport-button secondary" id="previous-button" type="button" aria-label="Back to song beginning" title="Restart song · previous song near the beginning">|◀</button>
+        <button class="transport-button primary" id="play-button" type="button" aria-label="Play" title="Play" disabled><span id="play-icon">▶</span></button>
+        <button class="transport-button secondary" id="next-button" type="button" aria-label="Next song" title="Next song" disabled>▶|</button>
+        <button class="transport-button secondary stop-button" id="stop-button" type="button" aria-label="Stop" title="Stop" disabled>■</button>
+      </div>
+      <audio id="audio-player" preload="metadata"></audio>
+    </section>
+
+    <section class="setlist-section" aria-labelledby="setlist-heading">
+      <div class="section-heading">
+        <div>
+          <div class="eyebrow">YOUR SET</div>
+          <h1 id="setlist-heading">Setlist</h1>
+        </div>
+        <label class="add-button" for="audio-files"><span aria-hidden="true">＋</span> Add tracks</label>
+        <input id="audio-files" class="visually-hidden" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple>
+      </div>
+
+      <div class="playlist-tools">
+        <label class="playlist-picker"><span>PLAYLIST</span><select id="playlist-select" aria-label="Select playlist"></select></label>
+        <div class="playlist-actions">
+          <button id="new-playlist-button" type="button" title="Create playlist">＋ New</button>
+          <button id="rename-playlist-button" type="button" title="Rename playlist">Rename</button>
+          <button id="delete-playlist-button" class="text-danger" type="button" title="Delete playlist">Delete</button>
+        </div>
+      </div>
+
+      <div id="track-list" class="track-list" aria-live="polite"></div>
+      <p class="storage-note" id="storage-note">Tracks and playlists are saved in this browser on this device.</p>
+    </section>
+
+    <footer>Made for the moment between the first note and the last.</footer>
+  </main>
+</body>
+</html>

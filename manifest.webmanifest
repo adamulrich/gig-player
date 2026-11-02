@@ -1,0 +1,14 @@
+{
+  "name": "Gig Player — Backing Tracks",
+  "short_name": "Gig Player",
+  "description": "A simple, stage-ready player for local backing tracks.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121b1a",
+  "theme_color": "#121b1a",
+  "icons": [
+    { "src": "images/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
