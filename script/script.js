@@ -10,6 +10,7 @@ const playbackStatus = document.getElementById("playback-status");
 const elapsedTime = document.getElementById("elapsed-time");
 const durationTime = document.getElementById("duration-time");
 const wakeStatus = document.getElementById("wake-status");
+const continuousPlay = document.getElementById("continuous-play");
 
 const DB_NAME = "gig-player-library";
 const DB_VERSION = 1;
@@ -496,14 +497,18 @@ audio.addEventListener("timeupdate", updatePlayerDisplay);
 audio.addEventListener("durationchange", updatePlayerDisplay);
 audio.addEventListener("play", () => { setStatus("Playing"); updatePlayerDisplay(); renderTracks(); requestWakeLock(); });
 audio.addEventListener("pause", () => { if (selectedTrackId && audio.currentTime < audio.duration) setStatus("Paused"); updatePlayerDisplay(); renderTracks(); });
-audio.addEventListener("ended", () => {
+audio.addEventListener("ended", async () => {
   const list = activeTracks();
   const index = list.findIndex((track) => track.id === selectedTrackId);
   if (index >= 0 && index < list.length - 1) {
-    selectTrack(list[index + 1].id, false);
-    isUpNext = true;
-    renderTracks();
-    setStatus("Song complete · Next track is ready when you are");
+    await selectTrack(list[index + 1].id, continuousPlay.checked);
+    if (continuousPlay.checked) {
+      if (!audio.paused) setStatus("Playing next track");
+    } else {
+      isUpNext = true;
+      renderTracks();
+      setStatus("Song complete · Next track is ready when you are");
+    }
   } else {
     setStatus("Set complete · Add or select another track");
     updatePlayerDisplay();
@@ -529,6 +534,8 @@ filePicker.addEventListener("change", () => importFiles(filePicker.files));
 document.getElementById("new-playlist-button").addEventListener("click", createPlaylist);
 document.getElementById("rename-playlist-button").addEventListener("click", renamePlaylist);
 document.getElementById("delete-playlist-button").addEventListener("click", deletePlaylist);
+continuousPlay.checked = localStorage.getItem("gig-player-continuous-play") === "true";
+continuousPlay.addEventListener("change", () => localStorage.setItem("gig-player-continuous-play", String(continuousPlay.checked)));
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") requestWakeLock(); });
 document.addEventListener("pointerdown", requestWakeLock, { once: true });
 
