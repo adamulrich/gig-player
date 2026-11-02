@@ -70,12 +70,17 @@ button:disabled { opacity: .35; cursor: default; }
 .drag-handle { display: grid; place-items: center; width: 25px; height: 34px; padding: 0; border: 0; border-radius: 6px; color: #1b2420; background: var(--orange); font-size: 17px; font-weight: 800; cursor: grab; touch-action: none; }
 .drag-handle:hover { color: #111916; background: #ffb07d; }
 .drag-handle:active { cursor: grabbing; }
-.track-row.is-dragging { position: relative; z-index: 1; border-color: var(--lime); background: #33422e; box-shadow: 0 7px 24px #0006, inset 3px 0 var(--lime); opacity: .94; }
+.track-row.is-dragging { position: relative; z-index: 1; border-color: #ffd0ab; background: var(--orange); box-shadow: 0 7px 24px #0006, inset 3px 0 #18221a; opacity: .98; }
 .track-main { display: grid; min-width: 0; padding: 4px 0; border: 0; color: inherit; background: transparent; text-align: left; cursor: pointer; }
 .track-title { overflow: hidden; color: #e8ece3; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .track-row.is-current .track-title { color: var(--lime); }
 .track-subtitle { overflow: hidden; margin-top: 3px; color: #78837a; font: 9px Consolas, "Courier New", monospace; letter-spacing: .04em; text-overflow: ellipsis; white-space: nowrap; }
 .track-row.is-playing .track-subtitle { color: #c2d77e; }
+.track-row.is-dragging .track-number,
+.track-row.is-dragging .track-title,
+.track-row.is-dragging .track-subtitle,
+.track-row.is-dragging .row-tool { color: #18221a; }
+.track-row.is-dragging .drag-handle { color: var(--orange); background: #18221a; }
 .row-tools { display: flex; gap: 3px; }
 .row-tool { display: grid; place-items: center; width: 32px; height: 34px; padding: 0; border: 0; border-radius: 7px; color: #9ba59a; background: transparent; font-size: 16px; cursor: pointer; }
 .row-tool:hover:not(:disabled) { color: var(--ink); background: #33403a; }
