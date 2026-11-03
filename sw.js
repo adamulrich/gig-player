@@ -1,4 +1,4 @@
-const CACHE_NAME = "gig-player-shell-v12";
+const CACHE_NAME = "gig-player-shell-v13";
 const SHELL = ["./", "./index.html", "./style/base.css", "./script/script.js", "./manifest.webmanifest", "./images/icon.svg"];
 
 self.addEventListener("install", (event) => {

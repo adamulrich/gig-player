@@ -225,6 +225,19 @@ function renderTracks() {
     row.append(handle, number, content, tools);
     trackList.append(row);
   });
+  scrollCurrentItemIntoView();
+}
+
+function scrollCurrentItemIntoView() {
+  const id = currentItemId();
+  if (!id) return;
+  const row = Array.from(trackList.querySelectorAll(".track-row")).find((item) => item.dataset.itemId === id);
+  if (!row) return;
+  const viewportTop = trackList.getBoundingClientRect().top + trackList.clientTop;
+  const viewportBottom = viewportTop + trackList.clientHeight;
+  const rowBounds = row.getBoundingClientRect();
+  if (rowBounds.top < viewportTop) trackList.scrollTop -= viewportTop - rowBounds.top;
+  else if (rowBounds.bottom > viewportBottom) trackList.scrollTop += rowBounds.bottom - viewportBottom;
 }
 
 function makeRowButton(label, title, onClick, disabled = false, danger = false) {
