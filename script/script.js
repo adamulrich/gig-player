@@ -11,6 +11,10 @@ const elapsedTime = document.getElementById("elapsed-time");
 const durationTime = document.getElementById("duration-time");
 const wakeStatus = document.getElementById("wake-status");
 const continuousPlay = document.getElementById("continuous-play");
+const noteCue = document.getElementById("note-cue");
+const noteDialog = document.getElementById("note-dialog");
+const noteForm = document.getElementById("note-form");
+const noteText = document.getElementById("note-text");
 
 const DB_NAME = "gig-player-library";
 const DB_VERSION = 1;
@@ -19,6 +23,8 @@ let playlists = [];
 let tracks = new Map();
 let activePlaylistId = null;
 let selectedTrackId = null;
+let selectedNoteId = null;
+let editingNoteId = null;
 let activeObjectUrl = null;
 let wakeLock = null;
 let isUpNext = false;
@@ -55,8 +61,23 @@ function activePlaylist() {
   return playlists.find((playlist) => playlist.id === activePlaylistId);
 }
 
+function activeItems() {
+  const playlist = activePlaylist();
+  return (playlist?.trackIds || []).map((id) => {
+    if (playlist.notes && Object.prototype.hasOwnProperty.call(playlist.notes, id)) {
+      return { id, type: "note", text: playlist.notes[id] };
+    }
+    const track = tracks.get(id);
+    return track ? { id, type: "track", track } : null;
+  }).filter(Boolean);
+}
+
 function activeTracks() {
-  return (activePlaylist()?.trackIds || []).map((id) => tracks.get(id)).filter(Boolean);
+  return activeItems().filter((item) => item.type === "track").map((item) => item.track);
+}
+
+function currentItemId() {
+  return selectedTrackId || selectedNoteId;
 }
 
 function displayTitle(track, playlist = activePlaylist()) {
@@ -78,10 +99,13 @@ function setStatus(message) {
 
 function updateControls() {
   const hasSelection = Boolean(selectedTrackId && tracks.has(selectedTrackId));
+  const hasCue = Boolean(selectedNoteId && activePlaylist()?.notes?.[selectedNoteId]);
+  const items = activeItems();
+  const itemIndex = items.findIndex((item) => item.id === currentItemId());
   playButton.disabled = !hasSelection;
-  document.getElementById("stop-button").disabled = !hasSelection;
-  document.getElementById("previous-button").disabled = !activeTracks().length;
-  document.getElementById("next-button").disabled = !activeTracks().length;
+  document.getElementById("stop-button").disabled = !hasSelection && !hasCue;
+  document.getElementById("previous-button").disabled = itemIndex <= 0;
+  document.getElementById("next-button").disabled = !items.length || (itemIndex >= 0 && itemIndex === items.length - 1);
   playIcon.textContent = audio.paused ? "▶" : "Ⅱ";
   playButton.setAttribute("aria-label", audio.paused ? "Play" : "Pause");
   playButton.title = audio.paused ? "Play" : "Pause";
@@ -107,7 +131,10 @@ function updateMediaSession() {
 
 function updatePlayerDisplay() {
   const track = tracks.get(selectedTrackId);
-  nowPlaying.textContent = track ? displayTitle(track) : "Choose a track to get started";
+  const note = selectedNoteId ? activePlaylist()?.notes?.[selectedNoteId] : null;
+  nowPlaying.textContent = track ? displayTitle(track) : note ? "Speaking note" : "Choose a track to get started";
+  noteCue.textContent = note || "";
+  noteCue.hidden = !note;
   elapsedTime.textContent = formatTime(audio.currentTime);
   durationTime.textContent = formatTime(audio.duration);
   seekBar.value = Number.isFinite(audio.duration) && audio.duration > 0 ? String(Math.round((audio.currentTime / audio.duration) * 1000)) : "0";
@@ -130,7 +157,7 @@ function renderPlaylists() {
 }
 
 function renderTracks() {
-  const list = activeTracks();
+  const list = activeItems();
   trackList.replaceChildren();
   if (!list.length) {
     const empty = document.createElement("div");
@@ -140,11 +167,14 @@ function renderTracks() {
     return;
   }
 
-  list.forEach((track, index) => {
+  list.forEach((item, index) => {
     const row = document.createElement("article");
-    const isCurrent = track.id === selectedTrackId;
-    row.className = `track-row${isCurrent ? " is-current" : ""}${isCurrent && !audio.paused ? " is-playing" : ""}`;
-    row.dataset.trackId = track.id;
+    const isCurrent = item.id === currentItemId();
+    const isTrack = item.type === "track";
+    const track = isTrack ? item.track : null;
+    const title = isTrack ? displayTitle(track) : "Speaking note";
+    row.className = `track-row${isCurrent ? " is-current" : ""}${isCurrent && isTrack && !audio.paused ? " is-playing" : ""}${isTrack ? "" : " note-row"}`;
+    row.dataset.itemId = item.id;
 
     const number = document.createElement("span");
     number.className = "track-number";
@@ -153,29 +183,38 @@ function renderTracks() {
     handle.type = "button";
     handle.className = "drag-handle";
     handle.textContent = "⠿";
-    handle.title = `Drag to reorder ${displayTitle(track)}`;
-    handle.setAttribute("aria-label", `Drag to reorder ${displayTitle(track)}`);
+    handle.title = `Drag to reorder ${title}`;
+    handle.setAttribute("aria-label", `Drag to reorder ${title}`);
     handle.addEventListener("pointerdown", beginDrag);
     const content = document.createElement("button");
     content.type = "button";
-    content.className = "track-main";
-    content.setAttribute("aria-label", `${isCurrent && !audio.paused ? "Pause" : "Play"} ${displayTitle(track)}`);
-    const title = document.createElement("span");
-    title.className = "track-title";
-    title.textContent = displayTitle(track);
+    content.className = `track-main${isTrack ? "" : " note-main"}`;
+    content.setAttribute("aria-label", isTrack ? `${isCurrent && !audio.paused ? "Pause" : "Play"} ${title}` : `Show speaking note: ${item.text}`);
+    const titleElement = document.createElement("span");
+    titleElement.className = "track-title";
+    titleElement.textContent = title;
     const subtitle = document.createElement("span");
     subtitle.className = "track-subtitle";
-    subtitle.textContent = isCurrent ? (!audio.paused ? "NOW PLAYING" : isUpNext ? "UP NEXT · TAP TO PLAY" : "SELECTED") : track.name;
-    content.append(title, subtitle);
-    content.addEventListener("click", () => selectTrack(track.id, true));
+    if (isTrack) {
+      subtitle.textContent = isCurrent ? (!audio.paused ? "NOW PLAYING" : isUpNext ? "UP NEXT · TAP TO PLAY" : "SELECTED") : track.name;
+      content.append(titleElement, subtitle);
+      content.addEventListener("click", () => selectTrack(track.id, true));
+    } else {
+      const preview = document.createElement("span");
+      preview.className = "note-preview";
+      preview.textContent = item.text;
+      subtitle.textContent = isCurrent ? "CURRENT CUE · PRESS NEXT WHEN READY" : "SPEAKING NOTE";
+      content.append(titleElement, preview, subtitle);
+      content.addEventListener("click", () => selectNote(item.id));
+    }
 
     const tools = document.createElement("div");
     tools.className = "row-tools";
     tools.append(
-      makeRowButton("↑", "Move up", () => moveTrack(index, -1), index === 0),
-      makeRowButton("↓", "Move down", () => moveTrack(index, 1), index === list.length - 1),
-      makeRowButton("✎", `Rename ${displayTitle(track)} in this playlist`, () => renameTrack(track.id)),
-      makeRowButton("×", `Remove ${displayTitle(track)}`, () => removeTrack(track.id), false, true)
+      makeRowButton("↑", "Move up", () => moveItem(index, -1), index === 0),
+      makeRowButton("↓", "Move down", () => moveItem(index, 1), index === list.length - 1),
+      makeRowButton("✎", isTrack ? `Rename ${title} in this playlist` : "Edit speaking note", () => isTrack ? renameTrack(track.id) : openNoteDialog(item.id)),
+      makeRowButton("×", `Remove ${title}`, () => removeItem(item.id), false, true)
     );
     row.append(handle, number, content, tools);
     trackList.append(row);
@@ -256,7 +295,7 @@ async function finishDrag(event) {
   if (!changed) return;
   const playlist = activePlaylist();
   if (!playlist) return;
-  playlist.trackIds = Array.from(trackList.querySelectorAll(".track-row"), (row) => row.dataset.trackId);
+  playlist.trackIds = Array.from(trackList.querySelectorAll(".track-row"), (row) => row.dataset.itemId);
   try {
     await savePlaylist(playlist);
     renderTracks();
@@ -284,6 +323,7 @@ async function selectTrack(id, startPlayback) {
   if (activeObjectUrl) URL.revokeObjectURL(activeObjectUrl);
   activeObjectUrl = URL.createObjectURL(track.blob);
   selectedTrackId = id;
+  selectedNoteId = null;
   isUpNext = false;
   audio.src = activeObjectUrl;
   audio.currentTime = 0;
@@ -297,13 +337,66 @@ async function selectTrack(id, startPlayback) {
   updatePlayerDisplay();
 }
 
-function moveTrack(index, direction) {
+function selectNote(id) {
+  const playlist = activePlaylist();
+  if (!playlist?.notes || !Object.prototype.hasOwnProperty.call(playlist.notes, id)) return;
+  audio.pause();
+  if (activeObjectUrl) URL.revokeObjectURL(activeObjectUrl);
+  activeObjectUrl = null;
+  audio.removeAttribute("src");
+  audio.load();
+  selectedTrackId = null;
+  selectedNoteId = id;
+  isUpNext = false;
+  setStatus("Speaking cue · Press Next when ready");
+  updatePlayerDisplay();
+  renderTracks();
+}
+
+function moveItem(index, direction) {
   const playlist = activePlaylist();
   if (!playlist) return;
   const target = index + direction;
   if (target < 0 || target >= playlist.trackIds.length) return;
   [playlist.trackIds[index], playlist.trackIds[target]] = [playlist.trackIds[target], playlist.trackIds[index]];
   savePlaylist(playlist).then(renderTracks).catch(() => setStatus("Could not save the new order."));
+}
+
+function openNoteDialog(id = null) {
+  editingNoteId = id;
+  const playlist = activePlaylist();
+  noteText.value = id && playlist?.notes ? playlist.notes[id] || "" : "";
+  document.getElementById("note-dialog-title").textContent = id ? "Edit speaking note" : "Add speaking note";
+  noteDialog.showModal();
+  noteText.focus();
+}
+
+async function saveNote(event) {
+  event.preventDefault();
+  const playlist = activePlaylist();
+  const text = noteText.value.trim();
+  if (!playlist || !text) return;
+  playlist.notes ||= {};
+  let id = editingNoteId;
+  if (id) {
+    playlist.notes[id] = text;
+  } else {
+    id = `note-${makeId()}`;
+    playlist.notes[id] = text;
+    const currentIndex = playlist.trackIds.indexOf(currentItemId());
+    if (currentIndex >= 0) playlist.trackIds.splice(currentIndex + 1, 0, id);
+    else playlist.trackIds.push(id);
+  }
+  try {
+    await savePlaylist(playlist);
+    noteDialog.close();
+    renderTracks();
+    updatePlayerDisplay();
+    setStatus(editingNoteId ? "Speaking note updated" : "Speaking note added · Drag it into position");
+    editingNoteId = null;
+  } catch (_) {
+    setStatus("Could not save the speaking note.");
+  }
 }
 
 async function renameTrack(id) {
@@ -329,16 +422,17 @@ async function renameTrack(id) {
   }
 }
 
-async function removeTrack(id) {
+async function removeItem(id) {
   const playlist = activePlaylist();
   if (!playlist) return;
   playlist.trackIds = playlist.trackIds.filter((trackId) => trackId !== id);
+  if (playlist.notes) delete playlist.notes[id];
   await savePlaylist(playlist);
-  if (![...playlists].some((item) => item.trackIds.includes(id))) {
+  if (tracks.has(id) && ![...playlists].some((item) => item.trackIds.includes(id))) {
     tracks.delete(id);
     await storeRequest("tracks", "readwrite", (store) => store.delete(id));
   }
-  if (selectedTrackId === id) stopPlayback();
+  if (currentItemId() === id) stopPlayback();
   renderTracks();
 }
 
@@ -346,6 +440,7 @@ function stopPlayback() {
   audio.pause();
   audio.currentTime = 0;
   selectedTrackId = null;
+  selectedNoteId = null;
   isUpNext = false;
   if (activeObjectUrl) URL.revokeObjectURL(activeObjectUrl);
   activeObjectUrl = null;
@@ -357,13 +452,15 @@ function stopPlayback() {
 }
 
 async function playRelative(direction) {
-  const list = activeTracks();
+  const list = activeItems();
   if (!list.length) return;
-  let index = list.findIndex((track) => track.id === selectedTrackId);
+  let index = list.findIndex((item) => item.id === currentItemId());
   if (index < 0) index = direction > 0 ? -1 : 0;
   const nextIndex = index + direction;
   if (nextIndex < 0 || nextIndex >= list.length) return;
-  await selectTrack(list[nextIndex].id, true);
+  const item = list[nextIndex];
+  if (item.type === "note") selectNote(item.id);
+  else await selectTrack(item.track.id, true);
 }
 
 async function goBack() {
@@ -481,7 +578,14 @@ async function requestWakeLock() {
 function registerMediaSession() {
   if (!("mediaSession" in navigator)) return;
   const actions = {
-    play: () => { if (selectedTrackId) audio.play(); else if (activeTracks()[0]) selectTrack(activeTracks()[0].id, true); },
+    play: () => {
+      if (selectedTrackId) audio.play();
+      else if (!currentItemId() && activeItems()[0]) {
+        const item = activeItems()[0];
+        if (item.type === "note") selectNote(item.id);
+        else selectTrack(item.track.id, true);
+      }
+    },
     pause: () => audio.pause(),
     stop: stopPlayback,
     previoustrack: goBack,
@@ -498,13 +602,19 @@ audio.addEventListener("durationchange", updatePlayerDisplay);
 audio.addEventListener("play", () => { setStatus("Playing"); updatePlayerDisplay(); renderTracks(); requestWakeLock(); });
 audio.addEventListener("pause", () => { if (selectedTrackId && audio.currentTime < audio.duration) setStatus("Paused"); updatePlayerDisplay(); renderTracks(); });
 audio.addEventListener("ended", async () => {
-  const list = activeTracks();
-  const index = list.findIndex((track) => track.id === selectedTrackId);
+  const list = activeItems();
+  const index = list.findIndex((item) => item.id === selectedTrackId);
   if (index >= 0 && index < list.length - 1) {
-    await selectTrack(list[index + 1].id, continuousPlay.checked);
-    if (continuousPlay.checked) {
-      if (!audio.paused) setStatus("Playing next track");
+    const nextItem = list[index + 1];
+    if (nextItem.type === "note") {
+      selectNote(nextItem.id);
+      setStatus("Speaking cue · Press Next when ready");
     } else {
+      await selectTrack(nextItem.track.id, continuousPlay.checked);
+    }
+    if (nextItem.type === "track" && continuousPlay.checked) {
+      if (!audio.paused) setStatus("Playing next track");
+    } else if (nextItem.type === "track") {
       isUpNext = true;
       renderTracks();
       setStatus("Song complete · Next track is ready when you are");
@@ -529,6 +639,9 @@ playButton.addEventListener("click", async () => {
 document.getElementById("stop-button").addEventListener("click", stopPlayback);
 document.getElementById("previous-button").addEventListener("click", goBack);
 document.getElementById("next-button").addEventListener("click", () => playRelative(1));
+document.getElementById("add-note-button").addEventListener("click", () => openNoteDialog());
+noteForm.addEventListener("submit", saveNote);
+document.getElementById("cancel-note-button").addEventListener("click", () => noteDialog.close());
 playlistSelect.addEventListener("change", () => changePlaylist(playlistSelect.value));
 filePicker.addEventListener("change", () => importFiles(filePicker.files));
 document.getElementById("new-playlist-button").addEventListener("click", createPlaylist);
@@ -537,7 +650,7 @@ document.getElementById("delete-playlist-button").addEventListener("click", dele
 continuousPlay.checked = localStorage.getItem("gig-player-continuous-play") === "true";
 continuousPlay.addEventListener("change", () => localStorage.setItem("gig-player-continuous-play", String(continuousPlay.checked)));
 window.addEventListener("beforeunload", (event) => {
-  if (!selectedTrackId) return;
+  if (!selectedTrackId && !selectedNoteId) return;
   event.preventDefault();
   event.returnValue = "";
 });

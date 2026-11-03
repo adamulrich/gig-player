@@ -31,6 +31,7 @@
       <div class="eyebrow">NOW PLAYING</div>
       <div class="now-playing" id="now-playing">Choose a track to get started</div>
       <div class="playback-status" id="playback-status" aria-live="polite">Your music stays on this device</div>
+      <div id="note-cue" class="note-cue" hidden></div>
 
       <div class="seek-row">
         <span id="elapsed-time">0:00</span>
@@ -53,7 +54,10 @@
           <div class="eyebrow">YOUR SET</div>
           <h1 id="setlist-heading">Setlist</h1>
         </div>
-        <label class="add-button" for="audio-files"><span aria-hidden="true">＋</span> Add tracks</label>
+        <div class="add-actions">
+          <button class="note-add-button" id="add-note-button" type="button">＋ Add note</button>
+          <label class="add-button" for="audio-files"><span aria-hidden="true">＋</span> Add tracks</label>
+        </div>
         <input id="audio-files" class="visually-hidden" type="file" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple>
       </div>
 
@@ -72,5 +76,17 @@
 
     <footer>Made for the moment between the first note and the last.</footer>
   </main>
+  <dialog id="note-dialog" class="note-dialog">
+    <form id="note-form">
+      <div class="eyebrow">SETLIST CUE</div>
+      <h2 id="note-dialog-title">Add speaking note</h2>
+      <label class="note-field" for="note-text">What do you want to say?</label>
+      <textarea id="note-text" rows="7" maxlength="2000" placeholder="Thank the audience, introduce the next song…" required></textarea>
+      <div class="dialog-actions">
+        <button id="cancel-note-button" class="dialog-cancel" type="button">Cancel</button>
+        <button class="dialog-save" type="submit">Save note</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>
