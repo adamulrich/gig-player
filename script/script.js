@@ -106,13 +106,15 @@ function updateControls() {
   const hasCue = Boolean(selectedNoteId && activePlaylist()?.notes?.[selectedNoteId]);
   const items = activeItems();
   const itemIndex = items.findIndex((item) => item.id === currentItemId());
-  playButton.disabled = !hasSelection;
+  const canContinueFromCue = hasCue && itemIndex >= 0 && itemIndex < items.length - 1;
+  playButton.disabled = !hasSelection && !canContinueFromCue;
   document.getElementById("stop-button").disabled = !hasSelection && !hasCue;
   document.getElementById("previous-button").disabled = itemIndex <= 0;
   document.getElementById("next-button").disabled = !items.length || (itemIndex >= 0 && itemIndex === items.length - 1);
   playIcon.textContent = audio.paused ? "▶" : "Ⅱ";
-  playButton.setAttribute("aria-label", audio.paused ? "Play" : "Pause");
-  playButton.title = audio.paused ? "Play" : "Pause";
+  const playLabel = hasCue ? "Continue to next item" : audio.paused ? "Play" : "Pause";
+  playButton.setAttribute("aria-label", playLabel);
+  playButton.title = playLabel;
   seekBar.disabled = !hasSelection || !Number.isFinite(audio.duration);
 }
 
@@ -604,6 +606,7 @@ function registerMediaSession() {
   const actions = {
     play: () => {
       if (selectedTrackId) audio.play();
+      else if (selectedNoteId) playRelative(1);
       else if (!currentItemId() && activeItems()[0]) {
         const item = activeItems()[0];
         if (item.type === "note") selectNote(item.id);
@@ -656,7 +659,8 @@ seekBar.addEventListener("input", () => {
   }
 });
 playButton.addEventListener("click", async () => {
-  if (!selectedTrackId && activeTracks()[0]) await selectTrack(activeTracks()[0].id, true);
+  if (selectedNoteId) await playRelative(1);
+  else if (!selectedTrackId && activeTracks()[0]) await selectTrack(activeTracks()[0].id, true);
   else if (audio.paused) { await audio.play().catch(() => setStatus("Could not play this audio file.")); requestWakeLock(); }
   else audio.pause();
 });
