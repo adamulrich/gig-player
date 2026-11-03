@@ -277,13 +277,16 @@ function updateDragPosition(clientX, clientY) {
 
 function autoScrollDrag() {
   if (!activeDrag) return;
-  const edge = 72;
+  const bounds = trackList.getBoundingClientRect();
+  const edge = Math.min(64, Math.max(24, bounds.height / 3));
   const y = activeDrag.clientY;
-  if (y < edge) {
-    window.scrollBy(0, -Math.max(4, Math.round((edge - y) / 3)));
+  if (y < bounds.top + edge && trackList.scrollTop > 0) {
+    const distance = Math.max(0, y - bounds.top);
+    trackList.scrollTop -= Math.max(3, Math.round((edge - distance) / 3));
     updateDragPosition(activeDrag.clientX, y);
-  } else if (y > window.innerHeight - edge) {
-    window.scrollBy(0, Math.max(4, Math.round((y - (window.innerHeight - edge)) / 3)));
+  } else if (y > bounds.bottom - edge && trackList.scrollTop < trackList.scrollHeight - trackList.clientHeight) {
+    const distance = Math.max(0, bounds.bottom - y);
+    trackList.scrollTop += Math.max(3, Math.round((edge - distance) / 3));
     updateDragPosition(activeDrag.clientX, y);
   }
   requestAnimationFrame(autoScrollDrag);

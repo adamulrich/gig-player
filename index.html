@@ -28,23 +28,26 @@
     </header>
 
     <section class="player-panel" aria-label="Audio player">
-      <div class="eyebrow">NOW PLAYING</div>
-      <div class="now-playing" id="now-playing">Choose a track to get started</div>
-      <div class="playback-status" id="playback-status" aria-live="polite">Your music stays on this device</div>
-      <div id="note-cue" class="note-cue" hidden></div>
-
+      <div class="player-info">
+        <div class="eyebrow">NOW PLAYING</div>
+        <div class="now-playing" id="now-playing">Choose a track to get started</div>
+        <div class="playback-status" id="playback-status" aria-live="polite">Your music stays on this device</div>
+        <div id="note-cue" class="note-cue" hidden></div>
+      </div>
+      <div class="player-actions">
+        <div class="transport" aria-label="Playback controls">
+          <button class="transport-button secondary" id="previous-button" type="button" aria-label="Back to song beginning" title="Restart song · previous song near the beginning">|◀</button>
+          <button class="transport-button primary" id="play-button" type="button" aria-label="Play" title="Play" disabled><span id="play-icon">▶</span></button>
+          <button class="transport-button secondary" id="next-button" type="button" aria-label="Next song" title="Next song" disabled>▶|</button>
+          <button class="transport-button secondary stop-button" id="stop-button" type="button" aria-label="Stop" title="Stop" disabled>■</button>
+        </div>
+        <label class="continuous-toggle"><input id="continuous-play" type="checkbox"><span class="toggle-copy"><strong>Continuous play</strong><small>Start the next track automatically</small></span></label>
+      </div>
       <div class="seek-row">
         <span id="elapsed-time">0:00</span>
         <input id="seek-bar" type="range" min="0" max="1000" value="0" aria-label="Seek through current song" disabled>
         <span id="duration-time">0:00</span>
       </div>
-      <div class="transport" aria-label="Playback controls">
-        <button class="transport-button secondary" id="previous-button" type="button" aria-label="Back to song beginning" title="Restart song · previous song near the beginning">|◀</button>
-        <button class="transport-button primary" id="play-button" type="button" aria-label="Play" title="Play" disabled><span id="play-icon">▶</span></button>
-        <button class="transport-button secondary" id="next-button" type="button" aria-label="Next song" title="Next song" disabled>▶|</button>
-        <button class="transport-button secondary stop-button" id="stop-button" type="button" aria-label="Stop" title="Stop" disabled>■</button>
-      </div>
-      <label class="continuous-toggle"><input id="continuous-play" type="checkbox"><span class="toggle-copy"><strong>Continuous play</strong><small>Start the next track automatically</small></span></label>
       <audio id="audio-player" preload="metadata"></audio>
     </section>
 
