@@ -88,5 +88,18 @@
       </div>
     </form>
   </dialog>
+  <dialog id="rename-dialog" class="note-dialog rename-dialog">
+    <form id="rename-form">
+      <div class="eyebrow">SETLIST DETAILS</div>
+      <h2 id="rename-dialog-title">Rename</h2>
+      <label class="note-field" id="rename-field-label" for="rename-text">Name</label>
+      <input id="rename-text" class="rename-text" type="text" maxlength="100" required>
+      <p id="rename-error" class="dialog-error" aria-live="polite" hidden></p>
+      <div class="dialog-actions">
+        <button id="cancel-rename-button" class="dialog-cancel" type="button">Cancel</button>
+        <button class="dialog-save" type="submit">Save name</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

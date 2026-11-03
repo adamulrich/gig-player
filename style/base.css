@@ -108,6 +108,9 @@ button:disabled { opacity: .35; cursor: default; }
 .note-field { display: block; margin-bottom: 8px; color: #bdc6b9; font-size: 12px; font-weight: 700; }
 .note-dialog textarea { display: block; width: 100%; min-height: 150px; resize: vertical; padding: 12px; border: 1px solid #455149; border-radius: 9px; outline-color: var(--lime); background: #111a18; color: var(--ink); font: inherit; font-size: 14px; line-height: 1.55; }
 .note-dialog textarea::placeholder { color: #6f7b71; }
+.rename-text { display: block; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #455149; border-radius: 9px; outline-color: var(--lime); background: #111a18; color: var(--ink); font: inherit; font-size: 14px; }
+.dialog-error { margin: 9px 0 0; color: #ffad91; font-size: 11px; }
+.dialog-error[hidden] { display: none; }
 .dialog-actions { display: flex; justify-content: end; gap: 8px; margin-top: 18px; }
 .dialog-actions button { min-height: 39px; padding: 0 14px; border: 0; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; }
 .dialog-cancel { color: #c0c9bd; background: #2b3631; }

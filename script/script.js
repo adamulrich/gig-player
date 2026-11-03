@@ -15,6 +15,9 @@ const noteCue = document.getElementById("note-cue");
 const noteDialog = document.getElementById("note-dialog");
 const noteForm = document.getElementById("note-form");
 const noteText = document.getElementById("note-text");
+const renameDialog = document.getElementById("rename-dialog");
+const renameForm = document.getElementById("rename-form");
+const renameText = document.getElementById("rename-text");
 
 const DB_NAME = "gig-player-library";
 const DB_VERSION = 1;
@@ -25,6 +28,7 @@ let activePlaylistId = null;
 let selectedTrackId = null;
 let selectedNoteId = null;
 let editingNoteId = null;
+let pendingRename = null;
 let activeObjectUrl = null;
 let wakeLock = null;
 let isUpNext = false;
@@ -371,6 +375,34 @@ function openNoteDialog(id = null) {
   noteText.focus();
 }
 
+function openRenameDialog(title, label, value, onSave) {
+  document.getElementById("rename-dialog-title").textContent = title;
+  document.getElementById("rename-field-label").textContent = label;
+  renameText.value = value;
+  const error = document.getElementById("rename-error");
+  error.textContent = "";
+  error.hidden = true;
+  pendingRename = onSave;
+  renameDialog.showModal();
+  renameText.focus();
+  renameText.select();
+}
+
+async function submitRename(event) {
+  event.preventDefault();
+  const name = renameText.value.trim();
+  if (!name || !pendingRename) return;
+  try {
+    await pendingRename(name);
+    renameDialog.close();
+    pendingRename = null;
+  } catch (_) {
+    const error = document.getElementById("rename-error");
+    error.textContent = "Could not save the new name. Please try again.";
+    error.hidden = false;
+  }
+}
+
 async function saveNote(event) {
   event.preventDefault();
   const playlist = activePlaylist();
@@ -403,23 +435,14 @@ async function renameTrack(id) {
   const playlist = activePlaylist();
   const track = tracks.get(id);
   if (!playlist || !track) return;
-  const name = prompt("Name shown in this playlist", displayTitle(track));
-  if (name === null) return;
-  const title = name.trim();
-  if (!title) {
-    setStatus("Song name cannot be empty.");
-    return;
-  }
-  playlist.trackTitles ||= {};
-  playlist.trackTitles[id] = title;
-  try {
+  openRenameDialog("Rename song", "Name shown in this playlist", displayTitle(track), async (title) => {
+    playlist.trackTitles ||= {};
+    playlist.trackTitles[id] = title;
     await savePlaylist(playlist);
     renderTracks();
     updatePlayerDisplay();
     setStatus("Playlist name updated · Audio file unchanged");
-  } catch (_) {
-    setStatus("Could not save the playlist name.");
-  }
+  });
 }
 
 async function removeItem(id) {
@@ -519,12 +542,13 @@ async function createPlaylist() {
 async function renamePlaylist() {
   const playlist = activePlaylist();
   if (!playlist) return;
-  const name = prompt("Rename playlist", playlist.name);
-  if (!name?.trim()) return;
-  playlist.name = name.trim();
-  await savePlaylist(playlist);
-  renderPlaylists();
-  updateMediaSession();
+  openRenameDialog("Rename playlist", "Playlist name", playlist.name, async (name) => {
+    playlist.name = name;
+    await savePlaylist(playlist);
+    renderPlaylists();
+    updateMediaSession();
+    setStatus("Playlist name updated");
+  });
 }
 
 async function deletePlaylist() {
@@ -642,6 +666,9 @@ document.getElementById("next-button").addEventListener("click", () => playRelat
 document.getElementById("add-note-button").addEventListener("click", () => openNoteDialog());
 noteForm.addEventListener("submit", saveNote);
 document.getElementById("cancel-note-button").addEventListener("click", () => noteDialog.close());
+renameForm.addEventListener("submit", submitRename);
+document.getElementById("cancel-rename-button").addEventListener("click", () => { renameDialog.close(); pendingRename = null; });
+renameDialog.addEventListener("close", () => { pendingRename = null; });
 playlistSelect.addEventListener("change", () => changePlaylist(playlistSelect.value));
 filePicker.addEventListener("change", () => importFiles(filePicker.files));
 document.getElementById("new-playlist-button").addEventListener("click", createPlaylist);
